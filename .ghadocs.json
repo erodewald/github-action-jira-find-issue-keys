@@ -10,7 +10,7 @@
     "prefix": "v",
     "branch": "main"
   },
-  "owner": "bitflight-devops",
+  "owner": "erodewald",
   "repo": "github-action-jira-find-issue-keys",
   "title_prefix": "GitHub Action: ",
   "pretty": "true"
