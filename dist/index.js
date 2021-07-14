@@ -142,7 +142,7 @@ class EventManager {
         return { startDate, endDate };
     }
     async getJiraKeysFromGitRange() {
-        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t;
+        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v;
         core.info(`EventName: ${this.context.eventName} Head Ref: ${this.refRange.headRef}, Base Ref: ${this.refRange.baseRef}`);
         if (!(this.refRange.baseRef && this.refRange.headRef) && !this.context.eventName.startsWith('pull_request')) {
             core.info('getJiraKeysFromGitRange: Base ref and head ref not found');
@@ -163,22 +163,24 @@ class EventManager {
         core.setOutput('ref_issues', this.setToCommaDelimitedString(refSet));
         const commitSet = new Set();
         let after = null;
-        let hasNextPage = ((_f = (_e = this.context.payload) === null || _e === void 0 ? void 0 : _e.pull_request) === null || _f === void 0 ? void 0 : _f.number) ? true : false;
+        let debugOwner = this.context.repo.owner, debugRepo = this.context.repo.repo, debugPrNumber = (_f = (_e = this.context.payload) === null || _e === void 0 ? void 0 : _e.pull_request) === null || _f === void 0 ? void 0 : _f.number;
+        core.debug(`owner: ${debugOwner}, repo: ${debugRepo}, pr: #${debugPrNumber}`);
+        let hasNextPage = ((_h = (_g = this.context.payload) === null || _g === void 0 ? void 0 : _g.pull_request) === null || _h === void 0 ? void 0 : _h.number) ? true : false;
         while (hasNextPage) {
             const { repository } = await graphqlWithAuth(listCommitMessagesInPullRequest, {
                 owner: this.context.repo.owner,
                 repo: this.context.repo.repo,
-                prNumber: (_h = (_g = this.context.payload) === null || _g === void 0 ? void 0 : _g.pull_request) === null || _h === void 0 ? void 0 : _h.number,
+                prNumber: (_k = (_j = this.context.payload) === null || _j === void 0 ? void 0 : _j.pull_request) === null || _k === void 0 ? void 0 : _k.number,
                 after
             });
-            if (((_k = (_j = repository === null || repository === void 0 ? void 0 : repository.pullRequest) === null || _j === void 0 ? void 0 : _j.commits) === null || _k === void 0 ? void 0 : _k.totalCount) == 0) {
+            if (((_m = (_l = repository === null || repository === void 0 ? void 0 : repository.pullRequest) === null || _l === void 0 ? void 0 : _l.commits) === null || _m === void 0 ? void 0 : _m.totalCount) == 0) {
                 hasNextPage = false;
             }
             else {
-                hasNextPage = (_m = (_l = repository === null || repository === void 0 ? void 0 : repository.pullRequest) === null || _l === void 0 ? void 0 : _l.commits) === null || _m === void 0 ? void 0 : _m.pageInfo.hasNextPage;
-                after = (_p = (_o = repository === null || repository === void 0 ? void 0 : repository.pullRequest) === null || _o === void 0 ? void 0 : _o.commits) === null || _p === void 0 ? void 0 : _p.pageInfo.endCursor;
-                if ((_r = (_q = repository === null || repository === void 0 ? void 0 : repository.pullRequest) === null || _q === void 0 ? void 0 : _q.commits) === null || _r === void 0 ? void 0 : _r.nodes) {
-                    for (const node of (_t = (_s = repository === null || repository === void 0 ? void 0 : repository.pullRequest) === null || _s === void 0 ? void 0 : _s.commits) === null || _t === void 0 ? void 0 : _t.nodes) {
+                hasNextPage = (_p = (_o = repository === null || repository === void 0 ? void 0 : repository.pullRequest) === null || _o === void 0 ? void 0 : _o.commits) === null || _p === void 0 ? void 0 : _p.pageInfo.hasNextPage;
+                after = (_r = (_q = repository === null || repository === void 0 ? void 0 : repository.pullRequest) === null || _q === void 0 ? void 0 : _q.commits) === null || _r === void 0 ? void 0 : _r.pageInfo.endCursor;
+                if ((_t = (_s = repository === null || repository === void 0 ? void 0 : repository.pullRequest) === null || _s === void 0 ? void 0 : _s.commits) === null || _t === void 0 ? void 0 : _t.nodes) {
+                    for (const node of (_v = (_u = repository === null || repository === void 0 ? void 0 : repository.pullRequest) === null || _u === void 0 ? void 0 : _u.commits) === null || _v === void 0 ? void 0 : _v.nodes) {
                         if (node) {
                             let skipCommit = false;
                             if (node.commit.message.startsWith('Merge branch') || node.commit.message.startsWith('Merge pull')) {
