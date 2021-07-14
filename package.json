@@ -4,13 +4,13 @@
   "description": "This action will find the issue keys in the GitHub event and return them as a comma separated list",
   "main": "dist/index.js",
   "sideEffects": false,
-  "displayName": "bitflight-devops/github-action-jira-find-issue-keys",
+  "displayName": "erodewald/github-action-jira-find-issue-keys",
   "repository": {
     "type": "git",
-    "url": "git@github.com:bitflight-devops/github-action-jira-find-issue-keys.git"
+    "url": "git@github.com:erodewald/github-action-jira-find-issue-keys.git"
   },
   "bugs": {
-    "url": "https://github.com/bitflight-devops/github-action-jira-find-issue-keys/issues"
+    "url": "https://github.com/erodewald/github-action-jira-find-issue-keys/issues"
   },
   "keywords": [
     "actions",
@@ -19,7 +19,6 @@
     "jira",
     "tickets"
   ],
-  "author": "Jamie Nelson <jamie@bitflight.io>",
   "license": "MIT",
   "private": true,
   "scripts": {
