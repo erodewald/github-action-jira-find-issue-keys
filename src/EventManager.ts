@@ -207,37 +207,42 @@ export default class EventManager {
 
     let hasNextPage = this.context.payload?.pull_request?.number ? true : false
 
-    core.debug(`graphql.endpoint.DEFAULTS.baseUrl: ${graphql.endpoint.DEFAULTS.baseUrl}`)
     core.debug(`graphqlWithAuth.endpoint.DEFAULTS.baseUrl: ${graphqlWithAuth.endpoint.DEFAULTS.baseUrl}`)
+    core.debug(`graphqlWithAuth.endpoint.DEFAULTS.baseUrl: ${graphqlWithAuth.}`)
 
     while (hasNextPage) {
-      const {repository} = await graphqlWithAuth<{repository: Repository}>(listCommitMessagesInPullRequest, {
-        owner: this.context.repo.owner,
-        repo: this.context.repo.repo,
-        prNumber: this.context.payload?.pull_request?.number,
-        after
-      })
-      if ((repository?.pullRequest?.commits?.totalCount as number) == 0) {
-        hasNextPage = false
-      } else {
-        hasNextPage = repository?.pullRequest?.commits?.pageInfo.hasNextPage as boolean
-        after = repository?.pullRequest?.commits?.pageInfo.endCursor as string | null
-        if (repository?.pullRequest?.commits?.nodes) {
-          for (const node of repository?.pullRequest?.commits?.nodes) {
-            if (node) {
-              let skipCommit = false
-              if (node.commit.message.startsWith('Merge branch') || node.commit.message.startsWith('Merge pull')) {
-                core.debug('Commit message indicates that it is a merge')
-                if (!this.includeMergeMessages) {
-                  skipCommit = true
+      try {
+        const {repository} = await graphqlWithAuth<{repository: Repository}>(listCommitMessagesInPullRequest, {
+          owner: this.context.repo.owner,
+          repo: this.context.repo.repo,
+          prNumber: this.context.payload?.pull_request?.number,
+          after
+        })
+        if ((repository?.pullRequest?.commits?.totalCount as number) == 0) {
+          hasNextPage = false
+        } else {
+          hasNextPage = repository?.pullRequest?.commits?.pageInfo.hasNextPage as boolean
+          after = repository?.pullRequest?.commits?.pageInfo.endCursor as string | null
+          if (repository?.pullRequest?.commits?.nodes) {
+            for (const node of repository?.pullRequest?.commits?.nodes) {
+              if (node) {
+                let skipCommit = false
+                if (node.commit.message.startsWith('Merge branch') || node.commit.message.startsWith('Merge pull')) {
+                  core.debug('Commit message indicates that it is a merge')
+                  if (!this.includeMergeMessages) {
+                    skipCommit = true
+                  }
                 }
-              }
-              if (skipCommit === false) {
-                this.getIssueSetFromString(node.commit.message, commitSet)
+                if (skipCommit === false) {
+                  this.getIssueSetFromString(node.commit.message, commitSet)
+                }
               }
             }
           }
         }
+      } catch (error) {
+        core.debug(`Request failed: ${error.request}`)
+        core.debug(error.message)
       }
     }
 

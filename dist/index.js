@@ -166,37 +166,43 @@ class EventManager {
         let debugOwner = this.context.repo.owner, debugRepo = this.context.repo.repo, debugPrNumber = (_f = (_e = this.context.payload) === null || _e === void 0 ? void 0 : _e.pull_request) === null || _f === void 0 ? void 0 : _f.number;
         core.debug(`owner: ${debugOwner}, repo: ${debugRepo}, pr: #${debugPrNumber}`);
         let hasNextPage = ((_h = (_g = this.context.payload) === null || _g === void 0 ? void 0 : _g.pull_request) === null || _h === void 0 ? void 0 : _h.number) ? true : false;
-        core.debug(`graphql.endpoint.DEFAULTS.baseUrl: ${graphql_1.graphql.endpoint.DEFAULTS.baseUrl}`);
+        core.debug(`graphqlWithAuth.endpoint.DEFAULTS: ${JSON.stringify(graphqlWithAuth.endpoint.DEFAULTS)}`);
         core.debug(`graphqlWithAuth.endpoint.DEFAULTS.baseUrl: ${graphqlWithAuth.endpoint.DEFAULTS.baseUrl}`);
         while (hasNextPage) {
-            const { repository } = await graphqlWithAuth(listCommitMessagesInPullRequest, {
-                owner: this.context.repo.owner,
-                repo: this.context.repo.repo,
-                prNumber: (_k = (_j = this.context.payload) === null || _j === void 0 ? void 0 : _j.pull_request) === null || _k === void 0 ? void 0 : _k.number,
-                after
-            });
-            if (((_m = (_l = repository === null || repository === void 0 ? void 0 : repository.pullRequest) === null || _l === void 0 ? void 0 : _l.commits) === null || _m === void 0 ? void 0 : _m.totalCount) == 0) {
-                hasNextPage = false;
-            }
-            else {
-                hasNextPage = (_p = (_o = repository === null || repository === void 0 ? void 0 : repository.pullRequest) === null || _o === void 0 ? void 0 : _o.commits) === null || _p === void 0 ? void 0 : _p.pageInfo.hasNextPage;
-                after = (_r = (_q = repository === null || repository === void 0 ? void 0 : repository.pullRequest) === null || _q === void 0 ? void 0 : _q.commits) === null || _r === void 0 ? void 0 : _r.pageInfo.endCursor;
-                if ((_t = (_s = repository === null || repository === void 0 ? void 0 : repository.pullRequest) === null || _s === void 0 ? void 0 : _s.commits) === null || _t === void 0 ? void 0 : _t.nodes) {
-                    for (const node of (_v = (_u = repository === null || repository === void 0 ? void 0 : repository.pullRequest) === null || _u === void 0 ? void 0 : _u.commits) === null || _v === void 0 ? void 0 : _v.nodes) {
-                        if (node) {
-                            let skipCommit = false;
-                            if (node.commit.message.startsWith('Merge branch') || node.commit.message.startsWith('Merge pull')) {
-                                core.debug('Commit message indicates that it is a merge');
-                                if (!this.includeMergeMessages) {
-                                    skipCommit = true;
+            try {
+                const { repository } = await graphqlWithAuth(listCommitMessagesInPullRequest, {
+                    owner: this.context.repo.owner,
+                    repo: this.context.repo.repo,
+                    prNumber: (_k = (_j = this.context.payload) === null || _j === void 0 ? void 0 : _j.pull_request) === null || _k === void 0 ? void 0 : _k.number,
+                    after
+                });
+                if (((_m = (_l = repository === null || repository === void 0 ? void 0 : repository.pullRequest) === null || _l === void 0 ? void 0 : _l.commits) === null || _m === void 0 ? void 0 : _m.totalCount) == 0) {
+                    hasNextPage = false;
+                }
+                else {
+                    hasNextPage = (_p = (_o = repository === null || repository === void 0 ? void 0 : repository.pullRequest) === null || _o === void 0 ? void 0 : _o.commits) === null || _p === void 0 ? void 0 : _p.pageInfo.hasNextPage;
+                    after = (_r = (_q = repository === null || repository === void 0 ? void 0 : repository.pullRequest) === null || _q === void 0 ? void 0 : _q.commits) === null || _r === void 0 ? void 0 : _r.pageInfo.endCursor;
+                    if ((_t = (_s = repository === null || repository === void 0 ? void 0 : repository.pullRequest) === null || _s === void 0 ? void 0 : _s.commits) === null || _t === void 0 ? void 0 : _t.nodes) {
+                        for (const node of (_v = (_u = repository === null || repository === void 0 ? void 0 : repository.pullRequest) === null || _u === void 0 ? void 0 : _u.commits) === null || _v === void 0 ? void 0 : _v.nodes) {
+                            if (node) {
+                                let skipCommit = false;
+                                if (node.commit.message.startsWith('Merge branch') || node.commit.message.startsWith('Merge pull')) {
+                                    core.debug('Commit message indicates that it is a merge');
+                                    if (!this.includeMergeMessages) {
+                                        skipCommit = true;
+                                    }
                                 }
-                            }
-                            if (skipCommit === false) {
-                                this.getIssueSetFromString(node.commit.message, commitSet);
+                                if (skipCommit === false) {
+                                    this.getIssueSetFromString(node.commit.message, commitSet);
+                                }
                             }
                         }
                     }
                 }
+            }
+            catch (error) {
+                core.debug(`Request failed: ${error.request}`);
+                core.debug(error.message);
             }
         }
         core.setOutput('commit_issues', this.setToCommaDelimitedString(commitSet));
