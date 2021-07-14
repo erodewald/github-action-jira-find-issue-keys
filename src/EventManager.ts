@@ -12,7 +12,7 @@ import {assignRefs, issueIdRegEx} from './utils'
 
 export const token = core.getInput('token') || core.getInput('github-token') || process.env.GITHUB_TOKEN || 'NO_TOKEN'
 
-const octokit = github.getOctokit(token)
+const octokit = github.getOctokit(token, { baseUrl: process.env.GITHUB_API_URL })
 interface CommitHistory extends GitObject {
   history?: Maybe<CommitHistoryConnection>
 }

@@ -14,7 +14,7 @@ const github = tslib_1.__importStar(__nccwpck_require__(95438));
 const graphql_1 = __nccwpck_require__(88467);
 const utils_1 = __nccwpck_require__(50918);
 exports.token = core.getInput('token') || core.getInput('github-token') || process.env.GITHUB_TOKEN || 'NO_TOKEN';
-const octokit = github.getOctokit(exports.token);
+const octokit = github.getOctokit(exports.token, { baseUrl: process.env.GITHUB_API_URL });
 const GetStartAndEndPoints = `
 query getStartAndEndPoints($owner: String!, $repo: String!, $headRef: String!,$baseRef: String!) {
   repository(owner: $owner, name: $repo) {
