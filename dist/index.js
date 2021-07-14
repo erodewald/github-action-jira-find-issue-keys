@@ -68,10 +68,10 @@ query listCommitMessagesInPullRequest($owner: String!, $repo: String!, $prNumber
 }
 `;
 const graphqlWithAuth = graphql_1.graphql.defaults({
+    baseUrl: process.env.GITHUB_API_URL,
     headers: {
         authorization: `token ${exports.token}`
-    },
-    baseUrl: process.env.GITHUB_GRAPHQL_URL
+    }
 });
 class EventManager {
     constructor(context, jira, argv) {
@@ -166,8 +166,8 @@ class EventManager {
         let debugOwner = this.context.repo.owner, debugRepo = this.context.repo.repo, debugPrNumber = (_f = (_e = this.context.payload) === null || _e === void 0 ? void 0 : _e.pull_request) === null || _f === void 0 ? void 0 : _f.number;
         core.debug(`owner: ${debugOwner}, repo: ${debugRepo}, pr: #${debugPrNumber}`);
         let hasNextPage = ((_h = (_g = this.context.payload) === null || _g === void 0 ? void 0 : _g.pull_request) === null || _h === void 0 ? void 0 : _h.number) ? true : false;
+        core.debug(`graphql.endpoint.DEFAULTS.baseUrl: ${graphql_1.graphql.endpoint.DEFAULTS.baseUrl}`);
         core.debug(`graphqlWithAuth.endpoint.DEFAULTS.baseUrl: ${graphqlWithAuth.endpoint.DEFAULTS.baseUrl}`);
-        core.debug(`graphqlWithAuth.defaults: ${graphqlWithAuth.defaults}`);
         while (hasNextPage) {
             const { repository } = await graphqlWithAuth(listCommitMessagesInPullRequest, {
                 owner: this.context.repo.owner,

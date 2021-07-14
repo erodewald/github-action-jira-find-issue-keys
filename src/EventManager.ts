@@ -82,10 +82,10 @@ query listCommitMessagesInPullRequest($owner: String!, $repo: String!, $prNumber
 `
 
 const graphqlWithAuth = graphql.defaults({
+  baseUrl: process.env.GITHUB_API_URL,
   headers: {
     authorization: `token ${token}`
-  },
-  baseUrl: process.env.GITHUB_GRAPHQL_URL
+  }
 })
 
 export interface ProjectFilter {
@@ -207,8 +207,8 @@ export default class EventManager {
 
     let hasNextPage = this.context.payload?.pull_request?.number ? true : false
 
+    core.debug(`graphql.endpoint.DEFAULTS.baseUrl: ${graphql.endpoint.DEFAULTS.baseUrl}`)
     core.debug(`graphqlWithAuth.endpoint.DEFAULTS.baseUrl: ${graphqlWithAuth.endpoint.DEFAULTS.baseUrl}`)
-    core.debug(`graphqlWithAuth.defaults: ${graphqlWithAuth.defaults}`)
 
     while (hasNextPage) {
       const {repository} = await graphqlWithAuth<{repository: Repository}>(listCommitMessagesInPullRequest, {
