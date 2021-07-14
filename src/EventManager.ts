@@ -85,7 +85,7 @@ const graphqlWithAuth = graphql.defaults({
   headers: {
     authorization: `token ${token}`
   },
-  endpoint: process.env.GITHUB_GRAPHQL_URL
+  baseUrl: process.env.GITHUB_GRAPHQL_URL
 })
 
 export interface ProjectFilter {

@@ -71,7 +71,7 @@ const graphqlWithAuth = graphql_1.graphql.defaults({
     headers: {
         authorization: `token ${exports.token}`
     },
-    endpoint: process.env.GITHUB_GRAPHQL_URL
+    baseUrl: process.env.GITHUB_GRAPHQL_URL
 });
 class EventManager {
     constructor(context, jira, argv) {
