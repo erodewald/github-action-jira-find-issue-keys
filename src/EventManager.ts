@@ -12,7 +12,7 @@ import {assignRefs, issueIdRegEx} from './utils'
 
 export const token = core.getInput('token') || core.getInput('github-token') || process.env.GITHUB_TOKEN || 'NO_TOKEN'
 
-const octokit = github.getOctokit(token, { baseUrl: process.env.GITHUB_API_URL })
+const octokit = github.getOctokit(token, {baseUrl: process.env.GITHUB_API_URL})
 interface CommitHistory extends GitObject {
   history?: Maybe<CommitHistoryConnection>
 }
@@ -84,7 +84,8 @@ query listCommitMessagesInPullRequest($owner: String!, $repo: String!, $prNumber
 const graphqlWithAuth = graphql.defaults({
   headers: {
     authorization: `token ${token}`
-  }
+  },
+  endpoint: process.env.GITHUB_GRAPHQL_URL
 })
 
 export interface ProjectFilter {
