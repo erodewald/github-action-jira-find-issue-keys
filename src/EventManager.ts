@@ -201,11 +201,14 @@ export default class EventManager {
     const commitSet = new Set<string>()
     let after: string | null = null
     let debugOwner = this.context.repo.owner,
-        debugRepo = this.context.repo.repo,
-        debugPrNumber = this.context.payload?.pull_request?.number
+      debugRepo = this.context.repo.repo,
+      debugPrNumber = this.context.payload?.pull_request?.number
     core.debug(`owner: ${debugOwner}, repo: ${debugRepo}, pr: #${debugPrNumber}`)
-    
+
     let hasNextPage = this.context.payload?.pull_request?.number ? true : false
+
+    core.debug(`graphqlWithAuth.endpoint.DEFAULTS.baseUrl: ${graphqlWithAuth.endpoint.DEFAULTS.baseUrl}`)
+    core.debug(`graphqlWithAuth.defaults: ${graphqlWithAuth.defaults}`)
 
     while (hasNextPage) {
       const {repository} = await graphqlWithAuth<{repository: Repository}>(listCommitMessagesInPullRequest, {
