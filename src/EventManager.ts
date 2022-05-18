@@ -254,15 +254,15 @@ export default class EventManager {
       while (hasNextPage) {
         try {
           const commits = await this.listCommitsInDateRange(dateRange, defaultBranch, after)
-          if ((commits.history?.totalCount as number) == 0) {
+          if ((commits?.totalCount as number) == 0) {
             hasNextPage = false
             core.debug(`Commits in date range: found zero commits`)
           } else {
-            hasNextPage = commits.history?.pageInfo.hasNextPage as boolean
-            after = commits.history?.pageInfo.endCursor as string | null
-            core.debug(`Commits in date range: found ${commits.history?.totalCount} commits`)
-            if (commits.history?.nodes) {
-              for (const node of commits.history?.nodes) {
+            hasNextPage = commits?.pageInfo.hasNextPage as boolean
+            after = commits?.pageInfo.endCursor as string | null
+            core.debug(`Commits in date range: found ${commits?.totalCount} commits`)
+            if (commits?.nodes) {
+              for (const node of commits?.nodes) {
                 if (node) {
                   let skipCommit = false
 
