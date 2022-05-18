@@ -154,6 +154,7 @@ class EventManager {
         return '';
     }
     async listCommitsInDateRange(range, ref, after = null) {
+        var _a, _b;
         const { owner, repo } = this.context.repo;
         const { startDate } = range;
         const { data } = await graphqlWithAuth(listCommitMessagesInDateRange, {
@@ -161,9 +162,9 @@ class EventManager {
             repo,
             ref,
             since: startDate,
-            after: after
+            after
         });
-        return data.repository.object.history;
+        return (_b = (_a = data.repository) === null || _a === void 0 ? void 0 : _a.object) === null || _b === void 0 ? void 0 : _b.history;
     }
     async getStartAndEndDates(range) {
         var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k;
@@ -204,32 +205,38 @@ class EventManager {
             let hasNextPage = true;
             let after = null;
             let debugOwner = this.context.repo.owner, debugRepo = this.context.repo.repo, debugDefaultBranch = (_f = (_e = this.context.payload) === null || _e === void 0 ? void 0 : _e.repository) === null || _f === void 0 ? void 0 : _f.default_branch;
-            core.debug(`owner: ${debugOwner}, repo: ${debugRepo}, default_branch: #${debugDefaultBranch}`);
+            core.debug(`owner: ${debugOwner}, repo: ${debugRepo}, default_branch: ${debugDefaultBranch}`);
             const dateRange = await this.getStartAndEndDates(this.refRange);
             while (hasNextPage) {
-                const commits = await this.listCommitsInDateRange(dateRange, (_h = (_g = this.context.payload) === null || _g === void 0 ? void 0 : _g.repository) === null || _h === void 0 ? void 0 : _h.default_branch, after);
-                if (((_j = commits.history) === null || _j === void 0 ? void 0 : _j.totalCount) == 0) {
-                    hasNextPage = false;
-                }
-                else {
-                    hasNextPage = (_k = commits.history) === null || _k === void 0 ? void 0 : _k.pageInfo.hasNextPage;
-                    after = (_l = commits.history) === null || _l === void 0 ? void 0 : _l.pageInfo.endCursor;
-                    if ((_m = commits.history) === null || _m === void 0 ? void 0 : _m.nodes) {
-                        for (const node of (_o = commits.history) === null || _o === void 0 ? void 0 : _o.nodes) {
-                            if (node) {
-                                let skipCommit = false;
-                                if (node.message.startsWith('Merge branch') || node.message.startsWith('Merge pull')) {
-                                    core.debug('Commit message indicates that it is a merge');
-                                    if (!this.includeMergeMessages) {
-                                        skipCommit = true;
+                try {
+                    const commits = await this.listCommitsInDateRange(dateRange, (_h = (_g = this.context.payload) === null || _g === void 0 ? void 0 : _g.repository) === null || _h === void 0 ? void 0 : _h.default_branch, after);
+                    if (((_j = commits.history) === null || _j === void 0 ? void 0 : _j.totalCount) == 0) {
+                        hasNextPage = false;
+                    }
+                    else {
+                        hasNextPage = (_k = commits.history) === null || _k === void 0 ? void 0 : _k.pageInfo.hasNextPage;
+                        after = (_l = commits.history) === null || _l === void 0 ? void 0 : _l.pageInfo.endCursor;
+                        if ((_m = commits.history) === null || _m === void 0 ? void 0 : _m.nodes) {
+                            for (const node of (_o = commits.history) === null || _o === void 0 ? void 0 : _o.nodes) {
+                                if (node) {
+                                    let skipCommit = false;
+                                    if (node.message.startsWith('Merge branch') || node.message.startsWith('Merge pull')) {
+                                        core.debug('Commit message indicates that it is a merge');
+                                        if (!this.includeMergeMessages) {
+                                            skipCommit = true;
+                                        }
                                     }
-                                }
-                                if (skipCommit === false) {
-                                    this.getIssueSetFromString(node.message, commitSet);
+                                    if (skipCommit === false) {
+                                        this.getIssueSetFromString(node.message, commitSet);
+                                    }
                                 }
                             }
                         }
                     }
+                }
+                catch (error) {
+                    core.debug(`Request failed: ${error.request}`);
+                    core.debug(error.message);
                 }
             }
         }

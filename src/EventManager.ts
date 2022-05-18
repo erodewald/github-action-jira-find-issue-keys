@@ -194,9 +194,9 @@ export default class EventManager {
       repo,
       ref,
       since: startDate,
-      after: after
+      after
     })
-    return data.repository.object.history
+    return data.repository?.object?.history
   }
 
   async getStartAndEndDates(range: RefRange): Promise<DateRange> {
@@ -247,38 +247,43 @@ export default class EventManager {
         debugRepo = this.context.repo.repo,
         debugDefaultBranch = this.context.payload?.repository?.default_branch
 
-      core.debug(`owner: ${debugOwner}, repo: ${debugRepo}, default_branch: #${debugDefaultBranch}`)
+      core.debug(`owner: ${debugOwner}, repo: ${debugRepo}, default_branch: ${debugDefaultBranch}`)
 
       const dateRange = await this.getStartAndEndDates(this.refRange)
       while (hasNextPage) {
-        const commits = await this.listCommitsInDateRange(
-          dateRange,
-          this.context.payload?.repository?.default_branch,
-          after
-        )
+        try {
+          const commits = await this.listCommitsInDateRange(
+            dateRange,
+            this.context.payload?.repository?.default_branch,
+            after
+          )
 
-        if ((commits.history?.totalCount as number) == 0) {
-          hasNextPage = false
-        } else {
-          hasNextPage = commits.history?.pageInfo.hasNextPage as boolean
-          after = commits.history?.pageInfo.endCursor as string | null
-          if (commits.history?.nodes) {
-            for (const node of commits.history?.nodes) {
-              if (node) {
-                let skipCommit = false
+          if ((commits.history?.totalCount as number) == 0) {
+            hasNextPage = false
+          } else {
+            hasNextPage = commits.history?.pageInfo.hasNextPage as boolean
+            after = commits.history?.pageInfo.endCursor as string | null
+            if (commits.history?.nodes) {
+              for (const node of commits.history?.nodes) {
+                if (node) {
+                  let skipCommit = false
 
-                if (node.message.startsWith('Merge branch') || node.message.startsWith('Merge pull')) {
-                  core.debug('Commit message indicates that it is a merge')
-                  if (!this.includeMergeMessages) {
-                    skipCommit = true
+                  if (node.message.startsWith('Merge branch') || node.message.startsWith('Merge pull')) {
+                    core.debug('Commit message indicates that it is a merge')
+                    if (!this.includeMergeMessages) {
+                      skipCommit = true
+                    }
                   }
-                }
-                if (skipCommit === false) {
-                  this.getIssueSetFromString(node.message, commitSet)
+                  if (skipCommit === false) {
+                    this.getIssueSetFromString(node.message, commitSet)
+                  }
                 }
               }
             }
           }
+        } catch (error) {
+          core.debug(`Request failed: ${error.request}`)
+          core.debug(error.message)
         }
       }
     }
