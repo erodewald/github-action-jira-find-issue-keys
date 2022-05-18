@@ -1,0 +1,17 @@
+query listCommitMessagesInDateRange($owner: String!, $repo: String!, $ref: String!, $since: GitTimestamp!, $after: String){
+  repository(owner: $owner, name: $repo) {
+    nameWithOwner
+    object(expression: $ref) {
+      ... on Commit {
+        oid
+        history(first: 100, since: $since, after: $after) {
+          nodes {
+            oid
+            message
+            committedDate
+          }
+        }
+      }
+    }
+  }
+}

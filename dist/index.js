@@ -77,12 +77,7 @@ query listCommitMessagesInDateRange($owner: String!, $repo: String!, $ref: Strin
         history(first: 100, since: $since, after: $after) {
           nodes {
             oid
-            messageHeadline
-            author {
-              user {
-                login
-              }
-            }
+            message
             committedDate
           }
         }

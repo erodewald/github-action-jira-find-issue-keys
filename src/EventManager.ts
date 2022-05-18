@@ -15,7 +15,7 @@ export const token = core.getInput('token') || core.getInput('github-token') || 
 
 const octokit = github.getOctokit(token, {baseUrl: process.env.GITHUB_API_URL})
 interface CommitHistory extends GitObject {
-  history?: Maybe<CommitHistoryConnection>
+  history?: Maybe<CommitHistoryConnection> | undefined
 }
 interface RefCommits extends Ref {
   target?: Maybe<CommitHistory>
@@ -28,6 +28,9 @@ interface RepositoryDateRange extends Repository {
 interface DateRange {
   startDate: string
   endDate: string
+}
+interface RepositoryCommitHistory extends Repository {
+  object?: Maybe<CommitHistory>
 }
 const GetStartAndEndPoints = `
 query getStartAndEndPoints($owner: String!, $repo: String!, $headRef: String!,$baseRef: String!) {
@@ -92,12 +95,7 @@ query listCommitMessagesInDateRange($owner: String!, $repo: String!, $ref: Strin
         history(first: 100, since: $since, after: $after) {
           nodes {
             oid
-            messageHeadline
-            author {
-              user {
-                login
-              }
-            }
+            message
             committedDate
           }
         }
@@ -186,10 +184,14 @@ export default class EventManager {
     return ''
   }
 
-  async listCommitsInDateRange(range: DateRange, ref: string, after: string | null = null): Promise<CommitHistory> {
+  async listCommitsInDateRange(
+    range: DateRange,
+    ref: string,
+    after: string | null = null
+  ): Promise<Maybe<CommitHistoryConnection> | undefined> {
     const {owner, repo} = this.context.repo
     const {startDate} = range
-    const {repository} = await graphqlWithAuth(listCommitMessagesInDateRange, {
+    const {repository} = await graphqlWithAuth<{repository: RepositoryCommitHistory}>(listCommitMessagesInDateRange, {
       owner,
       repo,
       ref,
