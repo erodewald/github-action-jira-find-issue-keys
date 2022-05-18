@@ -189,16 +189,36 @@ export default class EventManager {
     ref: string,
     after: string | null = null
   ): Promise<Maybe<CommitHistoryConnection> | undefined> {
-    const {owner, repo} = this.context.repo
-    const {startDate} = range
-    const {repository} = await graphqlWithAuth<{repository: RepositoryCommitHistory}>(listCommitMessagesInDateRange, {
-      owner,
-      repo,
-      ref,
-      since: startDate,
-      after
-    })
-    return repository?.object?.history
+    try {
+      const {owner, repo} = this.context.repo
+      const {startDate} = range
+      const {repository} = await graphqlWithAuth<{repository: RepositoryCommitHistory}>(listCommitMessagesInDateRange, {
+        owner,
+        repo,
+        ref,
+        since: startDate,
+        after
+      })
+      core.debug(`listCommitsInDateRange: ${JSON.stringify(repository)}`)
+      return repository?.object?.history
+    } catch (error) {
+      // server responds with an object like the following (as an example)
+      // class GraphqlResponseError {
+      //  "headers": {
+      //    "status": "403",
+      //  },
+      //  "data": null,
+      //  "errors": [{
+      //   "message": "Field 'bioHtml' doesn't exist on type 'User'",
+      //   "locations": [{
+      //    "line": 3,
+      //    "column": 5
+      //   }]
+      //  }]
+      // }
+      core.debug(`Request failed: ${JSON.stringify(error.request)}`) // { query, variables: {}, headers: { authorization: 'token secret123' } }
+      core.debug(`Error: ${JSON.stringify(error.response)}`) // { status: 403, statusText: 'Forbidden', headers: {}, data: null }
+    }
   }
 
   async getStartAndEndDates(range: RefRange): Promise<DateRange> {
@@ -258,8 +278,8 @@ export default class EventManager {
             hasNextPage = false
             core.debug(`Commits in date range: found zero commits`)
           } else {
-            hasNextPage = commits?.pageInfo.hasNextPage as boolean
-            after = commits?.pageInfo.endCursor as string | null
+            hasNextPage = commits?.pageInfo?.hasNextPage as boolean
+            after = commits?.pageInfo?.endCursor as string | null
             core.debug(`Commits in date range: found ${commits?.totalCount} commits`)
             if (commits?.nodes) {
               for (const node of commits?.nodes) {
@@ -282,6 +302,7 @@ export default class EventManager {
             }
           }
         } catch (error) {
+          hasNextPage = false
           core.debug(`Request failed: ${error.request}`)
           core.debug(error.message)
         }
@@ -329,6 +350,7 @@ export default class EventManager {
             }
           }
         } catch (error) {
+          hasNextPage = false
           core.debug(`Request failed: ${error.request}`)
           core.debug(error.message)
         }
