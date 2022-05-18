@@ -189,14 +189,14 @@ export default class EventManager {
   async listCommitsInDateRange(range: DateRange, ref: string, after: string | null = null): Promise<CommitHistory> {
     const {owner, repo} = this.context.repo
     const {startDate} = range
-    const {data} = await graphqlWithAuth(listCommitMessagesInDateRange, {
+    const {repository} = await graphqlWithAuth(listCommitMessagesInDateRange, {
       owner,
       repo,
       ref,
       since: startDate,
       after
     })
-    return data.repository?.object?.history
+    return repository?.object?.history
   }
 
   async getStartAndEndDates(range: RefRange): Promise<DateRange> {
@@ -243,21 +243,15 @@ export default class EventManager {
     if (isRelease) {
       let hasNextPage = true
       let after: string | null = null
-      let debugOwner = this.context.repo.owner,
-        debugRepo = this.context.repo.repo,
-        debugDefaultBranch = this.context.payload?.repository?.default_branch
+      let defaultBranch = this.context.payload?.repository?.default_branch
 
-      core.debug(`owner: ${debugOwner}, repo: ${debugRepo}, default_branch: ${debugDefaultBranch}`)
+      core.debug(`repo: ${JSON.stringify(this.context.repo)}, default_branch: ${defaultBranch}`)
 
       const dateRange = await this.getStartAndEndDates(this.refRange)
+      core.debug(`dateRange: ${JSON.stringify(dateRange)}`)
       while (hasNextPage) {
         try {
-          const commits = await this.listCommitsInDateRange(
-            dateRange,
-            this.context.payload?.repository?.default_branch,
-            after
-          )
-
+          const commits = await this.listCommitsInDateRange(dateRange, defaultBranch, after)
           if ((commits.history?.totalCount as number) == 0) {
             hasNextPage = false
           } else {
