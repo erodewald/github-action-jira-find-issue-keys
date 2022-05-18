@@ -67,6 +67,30 @@ query listCommitMessagesInPullRequest($owner: String!, $repo: String!, $prNumber
   }
 }
 `;
+const listCommitMessagesInDateRange = `
+query listCommitMessagesInDateRange($owner: String!, $repo: String!, $ref: String!, $since: GitTimestamp!, $after: String){
+  repository(owner: $owner, name: $repo) {
+    nameWithOwner
+    object(expression: $ref) {
+      ... on Commit {
+        oid
+        history(first: 100, since: $since, after: $after) {
+          nodes {
+            oid
+            messageHeadline
+            author {
+              user {
+                login
+              }
+            }
+            committedDate
+          }
+        }
+      }
+    }
+  }
+}
+`;
 const graphqlWithAuth = graphql_1.graphql.defaults({
     baseUrl: process.env.GITHUB_API_URL,
     headers: {
@@ -129,6 +153,18 @@ class EventManager {
         }
         return '';
     }
+    async listCommitsInDateRange(range, ref, after = null) {
+        const { owner, repo } = this.context.repo;
+        const { startDate } = range;
+        const { data } = await graphqlWithAuth(listCommitMessagesInDateRange, {
+            owner,
+            repo,
+            ref,
+            since: startDate,
+            after: after
+        });
+        return data.repository.object.history;
+    }
     async getStartAndEndDates(range) {
         var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k;
         const { repository } = await graphqlWithAuth(GetStartAndEndPoints, {
@@ -142,7 +178,7 @@ class EventManager {
         return { startDate, endDate };
     }
     async getJiraKeysFromGitRange() {
-        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v;
+        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y, _z, _0, _1, _2, _3, _4;
         core.info(`EventName: ${this.context.eventName} Head Ref: ${this.refRange.headRef}, Base Ref: ${this.refRange.baseRef}`);
         if (!(this.refRange.baseRef && this.refRange.headRef) && !this.context.eventName.startsWith('pull_request')) {
             core.info('getJiraKeysFromGitRange: Base ref and head ref not found');
@@ -161,48 +197,83 @@ class EventManager {
         }
         const refSet = this.getIssueSetFromString(this.refRange.headRef);
         core.setOutput('ref_issues', this.setToCommaDelimitedString(refSet));
+        const isPullRequest = this.context.eventName.startsWith('pull_request');
+        const isRelease = this.context.eventName.startsWith('release');
         const commitSet = new Set();
-        let after = null;
-        let debugOwner = this.context.repo.owner, debugRepo = this.context.repo.repo, debugPrNumber = (_f = (_e = this.context.payload) === null || _e === void 0 ? void 0 : _e.pull_request) === null || _f === void 0 ? void 0 : _f.number;
-        core.debug(`owner: ${debugOwner}, repo: ${debugRepo}, pr: #${debugPrNumber}`);
-        let hasNextPage = ((_h = (_g = this.context.payload) === null || _g === void 0 ? void 0 : _g.pull_request) === null || _h === void 0 ? void 0 : _h.number) ? true : false;
-        core.debug(`graphqlWithAuth.endpoint.DEFAULTS: ${JSON.stringify(graphqlWithAuth.endpoint.DEFAULTS)}`);
-        core.debug(`graphqlWithAuth.endpoint.DEFAULTS.baseUrl: ${graphqlWithAuth.endpoint.DEFAULTS.baseUrl}`);
-        while (hasNextPage) {
-            try {
-                const { repository } = await graphqlWithAuth(listCommitMessagesInPullRequest, {
-                    owner: this.context.repo.owner,
-                    repo: this.context.repo.repo,
-                    prNumber: (_k = (_j = this.context.payload) === null || _j === void 0 ? void 0 : _j.pull_request) === null || _k === void 0 ? void 0 : _k.number,
-                    after
-                });
-                if (((_m = (_l = repository === null || repository === void 0 ? void 0 : repository.pullRequest) === null || _l === void 0 ? void 0 : _l.commits) === null || _m === void 0 ? void 0 : _m.totalCount) == 0) {
+        if (isRelease) {
+            let hasNextPage = true;
+            let after = null;
+            let debugOwner = this.context.repo.owner, debugRepo = this.context.repo.repo, debugDefaultBranch = (_f = (_e = this.context.payload) === null || _e === void 0 ? void 0 : _e.repository) === null || _f === void 0 ? void 0 : _f.default_branch;
+            core.debug(`owner: ${debugOwner}, repo: ${debugRepo}, default_branch: #${debugDefaultBranch}`);
+            const dateRange = await this.getStartAndEndDates(this.refRange);
+            while (hasNextPage) {
+                const commits = await this.listCommitsInDateRange(dateRange, (_h = (_g = this.context.payload) === null || _g === void 0 ? void 0 : _g.repository) === null || _h === void 0 ? void 0 : _h.default_branch, after);
+                if (((_j = commits.history) === null || _j === void 0 ? void 0 : _j.totalCount) == 0) {
                     hasNextPage = false;
                 }
                 else {
-                    hasNextPage = (_p = (_o = repository === null || repository === void 0 ? void 0 : repository.pullRequest) === null || _o === void 0 ? void 0 : _o.commits) === null || _p === void 0 ? void 0 : _p.pageInfo.hasNextPage;
-                    after = (_r = (_q = repository === null || repository === void 0 ? void 0 : repository.pullRequest) === null || _q === void 0 ? void 0 : _q.commits) === null || _r === void 0 ? void 0 : _r.pageInfo.endCursor;
-                    if ((_t = (_s = repository === null || repository === void 0 ? void 0 : repository.pullRequest) === null || _s === void 0 ? void 0 : _s.commits) === null || _t === void 0 ? void 0 : _t.nodes) {
-                        for (const node of (_v = (_u = repository === null || repository === void 0 ? void 0 : repository.pullRequest) === null || _u === void 0 ? void 0 : _u.commits) === null || _v === void 0 ? void 0 : _v.nodes) {
+                    hasNextPage = (_k = commits.history) === null || _k === void 0 ? void 0 : _k.pageInfo.hasNextPage;
+                    after = (_l = commits.history) === null || _l === void 0 ? void 0 : _l.pageInfo.endCursor;
+                    if ((_m = commits.history) === null || _m === void 0 ? void 0 : _m.nodes) {
+                        for (const node of (_o = commits.history) === null || _o === void 0 ? void 0 : _o.nodes) {
                             if (node) {
                                 let skipCommit = false;
-                                if (node.commit.message.startsWith('Merge branch') || node.commit.message.startsWith('Merge pull')) {
+                                if (node.message.startsWith('Merge branch') || node.message.startsWith('Merge pull')) {
                                     core.debug('Commit message indicates that it is a merge');
                                     if (!this.includeMergeMessages) {
                                         skipCommit = true;
                                     }
                                 }
                                 if (skipCommit === false) {
-                                    this.getIssueSetFromString(node.commit.message, commitSet);
+                                    this.getIssueSetFromString(node.message, commitSet);
                                 }
                             }
                         }
                     }
                 }
             }
-            catch (error) {
-                core.debug(`Request failed: ${error.request}`);
-                core.debug(error.message);
+        }
+        if (isPullRequest) {
+            let after = null;
+            let debugOwner = this.context.repo.owner, debugRepo = this.context.repo.repo, debugPrNumber = (_q = (_p = this.context.payload) === null || _p === void 0 ? void 0 : _p.pull_request) === null || _q === void 0 ? void 0 : _q.number;
+            core.debug(`owner: ${debugOwner}, repo: ${debugRepo}, pr: #${debugPrNumber}`);
+            let hasNextPage = ((_s = (_r = this.context.payload) === null || _r === void 0 ? void 0 : _r.pull_request) === null || _s === void 0 ? void 0 : _s.number) ? true : false;
+            while (hasNextPage) {
+                try {
+                    const { repository } = await graphqlWithAuth(listCommitMessagesInPullRequest, {
+                        owner: this.context.repo.owner,
+                        repo: this.context.repo.repo,
+                        prNumber: (_u = (_t = this.context.payload) === null || _t === void 0 ? void 0 : _t.pull_request) === null || _u === void 0 ? void 0 : _u.number,
+                        after
+                    });
+                    if (((_w = (_v = repository === null || repository === void 0 ? void 0 : repository.pullRequest) === null || _v === void 0 ? void 0 : _v.commits) === null || _w === void 0 ? void 0 : _w.totalCount) == 0) {
+                        hasNextPage = false;
+                    }
+                    else {
+                        hasNextPage = (_y = (_x = repository === null || repository === void 0 ? void 0 : repository.pullRequest) === null || _x === void 0 ? void 0 : _x.commits) === null || _y === void 0 ? void 0 : _y.pageInfo.hasNextPage;
+                        after = (_0 = (_z = repository === null || repository === void 0 ? void 0 : repository.pullRequest) === null || _z === void 0 ? void 0 : _z.commits) === null || _0 === void 0 ? void 0 : _0.pageInfo.endCursor;
+                        if ((_2 = (_1 = repository === null || repository === void 0 ? void 0 : repository.pullRequest) === null || _1 === void 0 ? void 0 : _1.commits) === null || _2 === void 0 ? void 0 : _2.nodes) {
+                            for (const node of (_4 = (_3 = repository === null || repository === void 0 ? void 0 : repository.pullRequest) === null || _3 === void 0 ? void 0 : _3.commits) === null || _4 === void 0 ? void 0 : _4.nodes) {
+                                if (node) {
+                                    let skipCommit = false;
+                                    if (node.commit.message.startsWith('Merge branch') || node.commit.message.startsWith('Merge pull')) {
+                                        core.debug('Commit message indicates that it is a merge');
+                                        if (!this.includeMergeMessages) {
+                                            skipCommit = true;
+                                        }
+                                    }
+                                    if (skipCommit === false) {
+                                        this.getIssueSetFromString(node.commit.message, commitSet);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                catch (error) {
+                    core.debug(`Request failed: ${error.request}`);
+                    core.debug(error.message);
+                }
             }
         }
         core.setOutput('commit_issues', this.setToCommaDelimitedString(commitSet));
