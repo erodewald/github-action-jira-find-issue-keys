@@ -153,11 +153,14 @@ class EventManager {
         try {
             const { owner, repo } = this.context.repo;
             const { startDate } = range;
+            let dt = new Date(startDate);
+            dt.setSeconds(dt.getSeconds() + 1);
+            core.debug(`startDate: ${startDate}, modified: ${dt.toISOString()} (to exclude previous commit)`);
             const { repository } = await graphqlWithAuth(listCommitMessagesInDateRange, {
                 owner,
                 repo,
                 ref,
-                since: startDate,
+                since: dt.toISOString(),
                 after
             });
             core.debug(`listCommitsInDateRange: ${JSON.stringify(repository)}`);
