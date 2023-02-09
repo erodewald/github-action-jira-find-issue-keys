@@ -263,9 +263,10 @@ export default class EventManager {
 
     const isPullRequest = this.context.eventName.startsWith('pull_request')
     const isRelease = this.context.eventName.startsWith('release')
+    const isTag = this.context.eventName.startsWith('create') && this.context.payload?.ref_type === 'tag'
     const commitSet = new Set<string>()
 
-    if (isRelease) {
+    if (isRelease || isTag) {
       let hasNextPage = true
       let after: string | null = null
       let defaultBranch = this.context.payload?.repository?.default_branch
